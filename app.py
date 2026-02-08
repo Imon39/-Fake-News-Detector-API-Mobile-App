@@ -1,11 +1,18 @@
+import os
 from flask import Flask, request, jsonify
 import joblib
 
 app = Flask(__name__)
 
-# Load your model and vectorizer
-model = joblib.load("fake_news_model.pkl")
-vectorizer = joblib.load("tfidf_vectorizer.pkl")
+MODEL_PATH = os.path.join("Models", "fake_news_model.pkl")
+VECTORIZER_PATH = os.path.join("Models", "tfidf_vectorizer.pkl")
+
+# Load model and vectorizer
+try:
+    model = joblib.load(MODEL_PATH)
+    vectorizer = joblib.load(VECTORIZER_PATH)
+except FileNotFoundError:
+    print("Error: model not found!")
 
 @app.route('/')
 def home():
@@ -14,12 +21,19 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
+    if not data or "text" not in data:
+        return jsonify({"error": "Missing 'text' key in request"}), 400
+    
     text = data.get("text")
-    if not text:
-        return jsonify({"error": "Missing text"}), 400
     vectorized = vectorizer.transform([text])
     prediction = model.predict(vectorized)[0]
-    return jsonify({"is_fake": bool(prediction)})
+    
+
+    return jsonify({
+        "text_preview": text[:50] + "...",
+        "is_fake": bool(prediction)
+    })
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
