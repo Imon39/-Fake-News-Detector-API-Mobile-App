@@ -7,27 +7,25 @@ app = Flask(__name__)
 MODEL_PATH = os.path.join("Models", "fake_news_model.pkl")
 VECTORIZER_PATH = os.path.join("Models", "tfidf_vectorizer.pkl")
 
-# Load model and vectorizer
 try:
     model = joblib.load(MODEL_PATH)
     vectorizer = joblib.load(VECTORIZER_PATH)
-except FileNotFoundError:
-    print("Error: model not found!")
+except Exception as e:
+    print("Model loading error:", e)
 
-@app.route('/')
+@app.route("/")
 def home():
     return "Fake News Detection API is running!"
 
-@app.route('/predict', methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
     data = request.get_json()
     if not data or "text" not in data:
         return jsonify({"error": "Missing 'text' key in request"}), 400
-    
-    text = data.get("text")
+
+    text = data["text"]
     vectorized = vectorizer.transform([text])
     prediction = model.predict(vectorized)[0]
-    
 
     return jsonify({
         "text_preview": text[:50] + "...",
